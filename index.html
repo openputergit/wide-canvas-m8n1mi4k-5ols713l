@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Disease Prediction</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f9ff;
+            background-image: url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .prediction-form {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        /* Loader */
+        .loader {
+            border-top-color: #0ea5e9;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @-webkit-keyframes spinner {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Charts */
+        .risk-meter {
+            height: 10px;
+            transition: width 1s ease-in-out;
+        }
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+        }
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="app">
+        <!-- Auth Pages -->
+        <div id="auth-pages" class="container mx-auto px-4 py-8">
+            <!-- Login Page -->
+            <div id="login-page" class="glass-card max-w-md mx-auto rounded-xl shadow-lg p-6 md:p-8 mt-20">
+                <h2 class="text-3xl font-bold text-sky-800 mb-6 text-center">
+                    <i class="bi bi-heart-pulse"></i> Login
+                </h2>
+                <form id="login-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" id="login-email" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                        <p id="login-email-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input type="password" id="login-password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                        <p id="login-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="remember-me" class="h-4 w-4 text-sky-600 border-gray-300 rounded">
+                            <label for="remember-me" class="ml-2 block text-sm text-gray-700">Remember me</label>
+                        </div>
+                        <div class="text-sm">
+                            <a href="#" id="forgot-password-link" class="font-medium text-sky-600 hover:text-sky-500">Forgot password?</a>
+                        </div>
+                    </div>
+                    <div>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+                            Sign in
+                        </button>
+                    </div>
+                    <div class="text-center mt-4">
+                        <p class="text-sm text-gray-600">
+                            Don't have an account?
+                            <a href="#" id="register-link" class="font-medium text-sky-600 hover:text-sky-500">Create one</a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Register Page -->
+            <div id="register-page" class="glass-card max-w-md mx-auto rounded-xl shadow-lg p-6 md:p-8 mt-20 hidden">
+                <h2 class="text-3xl font-bold text-sky-800 mb-6 text-center">
+                    <i class="bi bi-heart-pulse"></i> Create Account
+                </h2>
+                <form id="register-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                        <input type="text" id="register-name" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                        <p id="register-name-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" id="register-email" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                        <p id="register-email-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                        <input type="password" id="register-password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                        <p id="register-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                        <input type="password" id="register-confirm-password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                        <p id="register-confirm-password-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                    <div>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+                            Create Account
+                        </button>
+                    </div>
+                    <div class="text-center mt-4">
+                        <p class="text-sm text-gray-600">
+                            Already have an account?
+                            <a href="#" id="login-link" class="font-medium text-sky-600 hover:text-sky-500">Sign in</a>
+                        </p>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Forgot Password Page -->
+            <div id="forgot-password-page" class="glass-card max-w-md mx-auto rounded-xl shadow-lg p-6 md:p-8 mt-20 hidden">
+                <h2 class="text-3xl font-bold text-sky-800 mb-6 text-center">
+                    <i class="bi bi-heart-pulse"></i> Reset Password
+                </h2>
+                <p class="text-gray-600 mb-6 text-center">Enter your email address and we'll send you a link to reset your password.</p>
+                <form id="forgot-password-form" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" id="forgot-password-email" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                        <p id="forgot-password-email-error" class="text-red-500 text-xs mt-1 hidden"></p>
+                    </div>
+                    <div>
+                        <button type="submit" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+                            Send Reset Link
+                        </button>
+                    </div>
+                    <div class="text-center mt-4">
+                        <a href="#" id="back-to-login" class="font-medium text-sky-600 hover:text-sky-500">Back to login</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Application (Dashboard) -->
+        <div id="main-app" class="hidden">
+            <!-- Navigation -->
+            <nav class="bg-sky-800 text-white shadow-md">
+                <div class="container mx-auto px-4">
+                    <div class="flex justify-between items-center py-3">
+                        <div class="flex items-center">
+                            <i class="bi bi-heart-pulse text-2xl mr-2"></i>
+                            <span class="text-xl font-bold">HeartGuard</span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <div class="hidden md:flex items-center space-x-4">
+                                <a href="#" id="dashboard-link" class="hover:text-sky-200 font-medium">Dashboard</a>
+                                <a href="#" id="prediction-link" class="hover:text-sky-200 font-medium">Prediction</a>
+                                <a href="#" id="history-link" class="hover:text-sky-200 font-medium">History</a>
+                                <a href="#" id="profile-link" class="hover:text-sky-200 font-medium">Profile</a>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span id="user-name" class="hidden md:inline font-medium"></span>
+                                <button id="logout-btn" class="bg-sky-700 hover:bg-sky-600 px-3 py-1 rounded-md transition duration-300">
+                                    <i class="bi bi-box-arrow-right"></i> 
+                                    <span class="hidden md:inline ml-1">Logout</span>
+                                </button>
+                            </div>
+                            <button id="mobile-menu-btn" class="md:hidden text-xl">
+                                <i class="bi bi-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Mobile Menu -->
+                    <div id="mobile-menu" class="md:hidden hidden pb-3 space-y-2">
+                        <a href="#" id="mobile-dashboard-link" class="block py-2 hover:text-sky-200 font-medium">Dashboard</a>
+                        <a href="#" id="mobile-prediction-link" class="block py-2 hover:text-sky-200 font-medium">Prediction</a>
+                        <a href="#" id="mobile-history-link" class="block py-2 hover:text-sky-200 font-medium">History</a>
+                        <a href="#" id="mobile-profile-link" class="block py-2 hover:text-sky-200 font-medium">Profile</a>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Content Container -->
+            <div class="container mx-auto px-4 py-8">
+                <!-- Dashboard Page -->
+                <div id="dashboard-page" class="space-y-8">
+                    <header class="text-center mb-8">
+                        <h1 class="text-4xl font-bold text-sky-800 mb-4">Welcome to HeartGuard</h1>
+                        <p class="text-sky-600">Your personal heart health monitoring system</p>
+                    </header>
+
+                    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Stats Card -->
+                        <div class="glass-card rounded-xl shadow-lg p-6">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-700">Your Stats</h3>
+                                    <p class="text-gray-500 text-sm">Last updated: <span id="last-update-date">N/A</span></p>
+                                </div>
+                                <span class="text-sky-500 text-xl"><i class="bi bi-activity"></i></span>
+                            </div>
+                            <div class="mt-4 space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Last Risk Level:</span>
+                                    <span id="dashboard-last-risk" class="font-semibold">N/A</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Predictions Made:</span>
+                                    <span id="dashboard-predictions-count" class="font-semibold">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Action Card -->
+                        <div class="glass-card rounded-xl shadow-lg p-6">
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-lg font-semibold text-gray-700">Quick Actions</h3>
+                                <span class="text-sky-500 text-xl"><i class="bi bi-lightning-charge"></i></span>
+                            </div>
+                            <div class="mt-4 space-y-3">
+                                <a href="#" id="new-prediction-btn" class="block text-center bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+                                    New Prediction
+                                </a>
+                                <a href="#" id="view-history-btn" class="block text-center border border-sky-600 text-sky-600 hover:bg-sky-50 font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+                                    View History
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Health Tips Card -->
+                        <div class="glass-card rounded-xl shadow-lg p-6">
+                            <div class="flex justify-between items-start">
+                                <h3 class="text-lg font-semibold text-gray-700">Health Tips</h3>
+                                <span class="text-sky-500 text-xl"><i class="bi bi-lightbulb"></i></span>
+                            </div>
+                            <div class="mt-4">
+                                <div id="health-tip" class="text-gray-600 italic">
+                                    Regular physical activity can lower your blood pressure, cholesterol, and risk of heart disease.
+                                </div>
+                                <button id="new-tip-btn" class="mt-4 text-sky-600 hover:text-sky-700 text-sm flex items-center">
+                                    <i class="bi bi-arrow-repeat mr-1"></i> Next Tip
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Predictions -->
+                    <div class="glass-card rounded-xl shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-semibold text-gray-700">Recent Predictions</h3>
+                            <a href="#" id="see-all-history" class="text-sky-600 hover:text-sky-700 text-sm">See All</a>
+                        </div>
+                        <div id="recent-predictions-container" class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk Level</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BP</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cholesterol</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-predictions-table" class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-500 text-center" colspan="5">
+                                            No prediction data available
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prediction Page -->
+                <div id="prediction-page" class="hidden">
+                    <header class="text-center mb-12">
+                        <h1 class="text-4xl font-bold text-sky-800 mb-4">
+                            <i class="bi bi-heart-pulse"></i> Heart Disease Prediction
+                        </h1>
+                        <p class="text-sky-600">Enter your health metrics for a preliminary heart disease risk assessment</p>
+                    </header>
+
+                    <div class="prediction-form max-w-2xl mx-auto rounded-xl shadow-lg p-6 md:p-8">
+                        <form id="heartDiseaseForm" class="space-y-6">
+                            <div class="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Age</label>
+                                    <input type="number" name="age" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                                    <select name="gender" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Blood Pressure (mm Hg)</label>
+                                    <div class="tooltip">
+                                        <input type="number" name="bp" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                                        <span class="tooltip-text">Systolic blood pressure (normal: 90-120)</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cholesterol (mg/dl)</label>
+                                    <div class="tooltip">
+                                        <input type="number" name="cholesterol" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                                        <span class="tooltip-text">Total cholesterol (normal: below 200)</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Heart Rate (bpm)</label>
+                                    <div class="tooltip">
+                                        <input type="number" name="heartRate" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                                        <span class="tooltip-text">Resting heart rate (normal: 60-100)</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Diabetes</label>
+                                    <select name="diabetes" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                                        <option value="">Select Option</option>
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Smoking</label>
+                                    <select name="smoking" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                                        <option value="">Select Option</option>
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Family History</label>
+                                    <select name="familyHistory" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                                        <option value="">Select Option</option>
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-center pt-4">
+                                <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-3 px-8 rounded-lg transition duration-300 ease-in-out transform hover:scale-105 flex items-center">
+                                    <span id="predict-btn-text">Predict Risk</span>
+                                    <div id="prediction-loader" class="hidden ml-2 border-2 border-white border-t-transparent h-5 w-5 rounded-full loader"></div>
+                                </button>
+                            </div>
+                        </form>
+
+                        <div id="result" class="mt-8 hidden">
+                            <div class="p-6 rounded-lg border-2 glass-card">
+                                <h3 class="text-xl font-semibold mb-4 text-center">Risk Assessment Result</h3>
+                                
+                                <!-- Risk Meter -->
+                                <div class="mb-6">
+                                    <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                        <div id="risk-meter" class="risk-meter bg-green-500 h-full" style="width: 0%"></div>
+                                    </div>
+                                    <div class="flex justify-between text-xs text-gray-600 mt-1">
+                                        <span>Low Risk</span>
+                                        <span>Moderate Risk</span>
+                                        <span>High Risk</span>
+                                    </div>
+                                </div>
+                                
+                                <p id="riskLevel" class="text-lg text-center"></p>
+                                <p id="confidence" class="text-sm text-gray-600 text-center mt-2"></p>
+                                <div class="mt-6 p-4 bg-sky-50 rounded-lg">
+                                    <h4 class="font-semibold text-sky-800 mb-2">What this means:</h4>
+                                    <p id="recommendation" class="text-gray-600"></p>
+                                </div>
+
+                                <div class="mt-6 flex justify-center space-x-4">
+                                    <button id="save-prediction" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+                                        Save Result
+                                    </button>
+                                    <button id="new-prediction" class="border border-sky-600 text-sky-600 hover:bg-sky-50 font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+                                        New Prediction
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Page -->
+                <div id="history-page" class="hidden">
+                    <header class="text-center mb-8">
+                        <h1 class="text-4xl font-bold text-sky-800 mb-4">Prediction History</h1>
+                        <p class="text-sky-600">View all your previous heart health assessments</p>
+                    </header>
+
+                    <div class="glass-card rounded-xl shadow-lg p-6 md:p-8">
+                        <div class="mb-6 flex flex-col md:flex-row md:justify-between md:items-center">
+                            <div class="mb-4 md:mb-0">
+                                <div class="flex items-center">
+                                    <div class="relative">
+                                        <input type="text" id="history-search" placeholder="Search..." class="pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                                        <div class="absolute left-3 top-2.5 text-gray-400">
+                                            <i class="bi bi-search"></i>
+                                        </div>
+                                    </div>
+                                    <select id="history-filter" class="ml-4 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                                        <option value="all">All Risk Levels</option>
+                                        <option value="low">Low Risk</option>
+                                        <option value="moderate">Moderate Risk</option>
+                                        <option value="high">High Risk</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <button id="clear-history" class="border border-red-600 text-red-600 hover:bg-red-50 font-medium py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+                                    <i class="bi bi-trash"></i> Clear All History
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk Level</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">BP</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cholesterol</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heart Rate</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-table" class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-500 text-center" colspan="7">
+                                            No prediction history available
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Page -->
+                <div id="profile-page" class="hidden">
+                    <header class="text-center mb-8">
+                        <h1 class="text-4xl font-bold text-sky-800 mb-4">User Profile</h1>
+                        <p class="text-sky-600">Manage your account settings and information</p>
+                    </header>
+
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <!-- Profile Information -->
+                        <div class="glass-card rounded-xl shadow-lg p-6 md:p-8 col-span-2">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-6">Profile Information</h3>
+                            <form id="profile-form" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                                    <input type="text" id="profile-name" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                    <input type="email" id="profile-email" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" readonly>
+                                </div>
+                                <div>
+                                    <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+                                        Update Profile
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Change Password -->
+                        <div class="glass-card rounded-xl shadow-lg p-6 md:p-8">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-6">Change Password</h3>
+                            <form id="password-form" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                                    <input type="password" id="current-password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                                    <input type="password" id="new-password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                                    <input type="password" id="confirm-new-password" class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500" required>
+                                </div>
+                                <div>
+                                    <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 ease-in-out">
+                                        Change Password
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Account Security -->
+                    <div class="glass-card rounded-xl shadow-lg p-6 md:p-8 mt-8">
+                        <h3 class="text-xl font-semibold text-gray-700 mb-6">Account Security</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-medium text-gray-700">Two-Factor Authentication</h4>
+                                    <p class="text-sm text-gray-500">Add an extra layer of security to your account</p>
+                                </div>
+                                <button id="enable-2fa" class="bg-sky-600 hover:bg-sky-700 text-white font-semibold py-1 px-3 rounded-lg transition duration-300 ease-in-out text-sm">
+                                    Enable
+                                </button>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-medium text-gray-700">Session Management</h4>
+                                    <p class="text-sm text-gray-500">Manage active sessions and signed-in devices</p>
+                                </div>
+                                <button id="view-sessions" class="border border-sky-600 text-sky-600 hover:bg-sky-50 font-semibold py-1 px-3 rounded-lg transition duration-300 ease-in-out text-sm">
+                                    View
+                                </button>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h4 class="font-medium text-red-600">Delete Account</h4>
+                                    <p class="text-sm text-gray-500">Permanently delete your account and all data</p>
+                                </div>
+                                <button id="delete-account" class="border border-red-600 text-red-600 hover:bg-red-50 font-semibold py-1 px-3 rounded-lg transition duration-300 ease-in-out text-sm">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast notifications container -->
+        <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-4"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the app
+            const app = {
+                // State management
+                state: {
+                    currentUser: null,
+                    users: JSON.parse(localStorage.getItem('users') || '[]'),
+                    predictions: JSON.parse(localStorage.getItem('predictions') || '[]'),
+                    activePage: 'login-page',
+                    healthTips: [
+                        "Regular physical activity can lower your blood pressure, cholesterol, and risk of heart disease.",
+                        "A diet rich in fruits, vegetables, whole grains, and lean proteins can help maintain heart health.",
+                        "Quitting smoking is one of the best things you can do for your heart health.",
+                        "Practice stress-reduction techniques like meditation or deep breathing to support your heart.",
+                        "Aim for 7-8 hours of quality sleep per night to help your heart recover and stay healthy.",
+                        "Moderate alcohol consumption means up to 1 drink per day for women and up to 2 for men.",
+                        "Regular health check-ups can help detect potential heart issues before they become serious.",
+                        "Maintaining a healthy weight can significantly reduce your risk of heart disease."
+                    ]
+                },
+
+                // Initialize the application
+                init: function() {
+                    this.checkLoggedInUser();
+                    this.setupEventListeners();
+                },
+
+                // Check if a user is already logged in (from session storage)
+                checkLoggedInUser: function() {
+                    const loggedInUser = sessionStorage.getItem('currentUser');
+                    if (loggedInUser) {
+                        this.state.currentUser = JSON.parse(loggedInUser);
+                        this.showApp();
+                    }
+                },
+
+                // Set up all event listeners
+                setupEventListeners: function() {
+                    // Auth navigation
+                    document.getElementById('register-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showPage('register-page');
+                    });
+                    document.getElementById('login-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showPage('login-page');
+                    });
+                    document.getElementById('forgot-password-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showPage('forgot-password-page');
+                    });
+                    document.getElementById('back-to-login').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showPage('login-page');
+                    });
+
+                    // Auth forms
+                    document.getElementById('login-form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.handleLogin();
+                    });
+                    document.getElementById('register-form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.handleRegister();
+                    });
+                    document.getElementById('forgot-password-form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.handleForgotPassword();
+                    });
+
+                    // Dashboard navigation
+                    document.getElementById('dashboard-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showAppPage('dashboard-page');
+                    });
+                    document.getElementById('prediction-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showAppPage('prediction-page');
+                    });
+                    document.getElementById('history-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showAppPage('history-page');
+                    });
+                    document.getElementById('profile-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showAppPage('profile-page');
+                    });
+
+                    // Mobile nav
+                    document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+                        const mobileMenu = document.getElementById('mobile-menu');
+                        mobileMenu.classList.toggle('hidden');
+                    });
+                    document.getElementById('mobile-dashboard-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showAppPage('dashboard-page');
+                        document.getElementById('mobile-menu').classList.add('hidden');
+                    });
+                    document.getElementById('mobile-prediction-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showAppPage('prediction-page');
+                        document.getElementById('mobile-menu').classList.add('hidden');
+                    });
+                    document.getElementById('mobile-history-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showAppPage('history-page');
+                        document.getElementById('mobile-menu').classList.add('hidden');
+                    });
+                    document.getElementById('mobile-profile-link').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showAppPage('profile-page');
+                        document.getElementById('mobile-menu').classList.add('hidden');
+                    });
+
+                    // Logout button
+                    document.getElementById('logout-btn').addEventListener('click', () => {
+                        this.handleLogout();
+                    });
+
+                    // Heart disease prediction form
+                    document.getElementById('heartDiseaseForm').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.handlePrediction();
+                    });
+
+                    // Dashboard quick actions
+                    document.getElementById('new-prediction-btn').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showAppPage('prediction-page');
+                    });
+                    document.getElementById('view-history-btn').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showAppPage('history-page');
+                    });
+                    document.getElementById('see-all-history').addEventListener('click', (e) => {
+                        e.preventDefault(); 
+                        this.showAppPage('history-page');
+                    });
+
+                    // Health tips
+                    document.getElementById('new-tip-btn').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.showRandomHealthTip();
+                    });
+
+                    // Result actions
+                    document.getElementById('save-prediction').addEventListener('click', () => {
+                        this.savePrediction();
+                        this.showToast('Prediction saved successfully!', 'success');
+                        // Reload recent predictions on dashboard
+                        if (this.state.currentUser) {
+                            this.loadDashboard();
+                        }
+                    });
+                    document.getElementById('new-prediction').addEventListener('click', () => {
+                        document.getElementById('heartDiseaseForm').reset();
+                        document.getElementById('result').classList.add('hidden');
+                    });
+
+                    // Profile form
+                    document.getElementById('profile-form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.updateProfile();
+                    });
+
+                    // Password form
+                    document.getElementById('password-form').addEventListener('submit', (e) => {
+                        e.preventDefault();
+                        this.changePassword();
+                    });
+
+                    // History page
+                    document.getElementById('clear-history').addEventListener('click', () => {
+                        this.clearHistory();
+                    });
+                    document.getElementById('history-search').addEventListener('input', () => {
+                        this.filterHistory();
+                    });
+                    document.getElementById('history-filter').addEventListener('change', () => {
+                        this.filterHistory();
+                    });
+
+                    // Security buttons
+                    document.getElementById('enable-2fa').addEventListener('click', () => {
+                        this.showToast('Two-factor authentication feature coming soon!', 'info');
+                    });
+                    document.getElementById('view-sessions').addEventListener('click', () => {
+                        this.showToast('Session management feature coming soon!', 'info');
+                    });
+                    document.getElementById('delete-account').addEventListener('click', () => {
+                        if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                            this.deleteAccount();
+                        }
+                    });
+                },
+
+                // Show a specific page
+                showPage: function(pageId) {
+                    document.getElementById(this.state.activePage).classList.add('hidden');
+                    document.getElementById(pageId).classList.remove('hidden');
+                    this.state.activePage = pageId;
+                },
+
+                // Show the main application after login
+                showApp: function() {
+                    document.getElementById('auth-pages').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    document.getElementById('user-name').textContent = this.state.currentUser.name;
+                    document.getElementById('user-name').classList.remove('hidden');
+                    this.showAppPage('dashboard-page');
+                    this.loadDashboard();
+                },
+
+                // Show a specific page in the main application
+                showAppPage: function(pageId) {
+                    document.querySelectorAll('#main-app > .container > div').forEach(page => {
+                        page.classList.add('hidden');
+                    });
+                    document.getElementById(pageId).classList.remove('hidden');
+
+                    if (pageId === 'dashboard-page') {
+                        this.loadDashboard();
+                    } else if (pageId === 'history-page') {
+                        this.loadHistory();
+                    } else if (pageId === 'profile-page') {
+                        this.loadProfile();
+                    }
+                },
+
+                // Handle login form submission
+                handleLogin: function() {
+                    const email = document.getElementById('login-email').value;
+                    const password = document.getElementById('login-password').value;
+
+                    // Reset error messages
+                    document.getElementById('login-email-error').classList.add('hidden');
+                    document.getElementById('login-password-error').classList.add('hidden');
+
+                    // Find user by email
+                    const user = this.state.users.find(u => u.email === email);
+                    if (!user) {
+                        document.getElementById('login-email-error').textContent = 'No account found with this email';
+                        document.getElementById('login-email-error').classList.remove('hidden');
+                        return;
+                    }
+
+                    // Check password
+                    if (user.password !== this.simpleHash(password)) {
+                        document.getElementById('login-password-error').textContent = 'Incorrect password';
+                        document.getElementById('login-password-error').classList.remove('hidden');
+                        return;
+                    }
+
+                    // Login successful
+                    this.state.currentUser = {
+                        id: user.id,
+                        name: user.name,
+                        email: user.email
+                    };
+                    sessionStorage.setItem('currentUser', JSON.stringify(this.state.currentUser));
+                    this.showApp();
+                    this.showToast('Login successful!', 'success');
+                },
+
+                // Handle registration form submission
+                handleRegister: function() {
+                    const name = document.getElementById('register-name').value;
+                    const email = document.getElementById('register-email').value;
+                    const password = document.getElementById('register-password').value;
+                    const confirmPassword = document.getElementById('register-confirm-password').value;
+                    
+                    // Reset error messages
+                    document.getElementById('register-name-error').classList.add('hidden');
+                    document.getElementById('register-email-error').classList.add('hidden');
+                    document.getElementById('register-password-error').classList.add('hidden');
+                    document.getElementById('register-confirm-password-error').classList.add('hidden');
+                    
+                    // Validate inputs
+                    let isValid = true;
+                    
+                    if (name.trim() === '') {
+                        document.getElementById('register-name-error').textContent = 'Name is required';
+                        document.getElementById('register-name-error').classList.remove('hidden');
+                        isValid = false;
+                    }
+                    
+                    if (email.trim() === '') {
+                        document.getElementById('register-email-error').textContent = 'Email is required';
+                        document.getElementById('register-email-error').classList.remove('hidden');
+                        isValid = false;
+                    }
+                    
+                    // Check if email already exists
+                    if (this.state.users.some(u => u.email === email)) {
+                        document.getElementById('register-email-error').textContent = 'Email already in use';
+                        document.getElementById('register-email-error').classList.remove('hidden');
+                        isValid = false;
+                    }
+                    
+                    if (password.length < 6) {
+                        document.getElementById('register-password-error').textContent = 'Password must be at least 6 characters long';
+                        document.getElementById('register-password-error').classList.remove('hidden');
+                        isValid = false;
+                    }
+                    
+                    if (password !== confirmPassword) {
+                        document.getElementById('register-confirm-password-error').textContent = 'Passwords do not match';
+                        document.getElementById('register-confirm-password-error').classList.remove('hidden');
+                        isValid = false;
+                    }
+                    
+                    if (!isValid) return;
+                    
+                    // Create new user
+                    const newUser = {
+                        id: Date.now().toString(),
+                        name: name,
+                        email: email,
+                        password: this.simpleHash(password),
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    this.state.users.push(newUser);
+                    localStorage.setItem('users', JSON.stringify(this.state.users));
+                    
+                    // Auto login
+                    this.state.currentUser = {
+                        id: newUser.id,
+                        name: newUser.name,
+                        email: newUser.email
+                    };
+                    sessionStorage.setItem('currentUser', JSON.stringify(this.state.currentUser));
+                    
+                    this.showApp();
+                    this.showToast('Account created successfully!', 'success');
+                },
+
+                // Handle forgot password form submission
+                handleForgotPassword: function() {
+                    const email = document.getElementById('forgot-password-email').value;
+                    
+                    // Check if email exists
+                    const user = this.state.users.find(u => u.email === email);
+                    if (!user) {
+                        document.getElementById('forgot-password-email-error').textContent = 'No account found with this email';
+                        document.getElementById('forgot-password-email-error').classList.remove('hidden');
+                        return;
+                    }
+
+                    // In a real application, this would send an email with a password reset link
+                    // For this demo, we'll just show a message
+                    this.showPage('login-page');
+                    this.showToast('Password reset instructions sent to your email!', 'success');
+                },
+
+                // Handle logout
+                handleLogout: function() {
+                    this.state.currentUser = null;
+                    sessionStorage.removeItem('currentUser');
+                    document.getElementById('main-app').classList.add('hidden');
+                    document.getElementById('auth-pages').classList.remove('hidden');
+                    this.showPage('login-page');
+                    this.showToast('Logged out successfully!', 'success');
+                },
+
+                // Load the dashboard with user data
+                loadDashboard: function() {
+                    // Filter predictions for current user
+                    const userPredictions = this.state.predictions.filter(p => 
+                        p.userId === this.state.currentUser.id
+                    ).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                    // Update last prediction info
+                    if (userPredictions.length > 0) {
+                        const lastPrediction = userPredictions[0];
+                        document.getElementById('dashboard-last-risk').textContent = lastPrediction.riskLevel;
+                        document.getElementById('dashboard-last-risk').className = 'font-semibold ' + this.getRiskLevelClass(lastPrediction.riskLevel);
+                        document.getElementById('last-update-date').textContent = new Date(lastPrediction.date).toLocaleDateString();
+                    } else {
+                        document.getElementById('dashboard-last-risk').textContent = 'N/A';
+                        document.getElementById('dashboard-last-risk').className = 'font-semibold';
+                        document.getElementById('last-update-date').textContent = 'N/A';
+                    }
+
+                    // Update predictions count
+                    document.getElementById('dashboard-predictions-count').textContent = userPredictions.length;
+
+                    // Update recent predictions table
+                    const recentPredictionsTable = document.getElementById('recent-predictions-table');
+                    if (userPredictions.length > 0) {
+                        let tableHTML = '';
+                        userPredictions.slice(0, 5).forEach(prediction => {
+                            tableHTML += `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">${new Date(prediction.date).toLocaleDateString()}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${this.getRiskLevelBadgeClass(prediction.riskLevel)}">
+                                            ${prediction.riskLevel}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">${prediction.bp}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">${prediction.cholesterol}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button class="text-sky-600 hover:text-sky-900 mr-3" onclick="app.viewPrediction('${prediction.id}')">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="text-red-600 hover:text-red-900" onclick="app.deletePrediction('${prediction.id}')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        recentPredictionsTable.innerHTML = tableHTML;
+                    } else {
+                        recentPredictionsTable.innerHTML = `
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-500 text-center" colspan="5">
+                                    No prediction data available
+                                </td>
+                            </tr>
+                        `;
+                    }
+
+                    // Show random health tip
+                    this.showRandomHealthTip();
+                },
+
+                // Show a random health tip
+                showRandomHealthTip: function() {
+                    const healthTipElement = document.getElementById('health-tip');
+                    const randomIndex = Math.floor(Math.random() * this.state.healthTips.length);
+                    healthTipElement.textContent = this.state.healthTips[randomIndex];
+                },
+
+                // Load the user's prediction history
+                loadHistory: function() {
+                    // Filter predictions for current user
+                    const userPredictions = this.state.predictions.filter(p => 
+                        p.userId === this.state.currentUser.id
+                    ).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                    // Update history table
+                    const historyTable = document.getElementById('history-table');
+                    if (userPredictions.length > 0) {
+                        let tableHTML = '';
+                        userPredictions.forEach(prediction => {
+                            tableHTML += `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">${new Date(prediction.date).toLocaleDateString()}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${this.getRiskLevelBadgeClass(prediction.riskLevel)}">
+                                            ${prediction.riskLevel}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">${prediction.age}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">${prediction.bp}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">${prediction.cholesterol}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">${prediction.heartRate}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button class="text-sky-600 hover:text-sky-900 mr-3" onclick="app.viewPrediction('${prediction.id}')">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="text-red-600 hover:text-red-900" onclick="app.deletePrediction('${prediction.id}')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        historyTable.innerHTML = tableHTML;
+                    } else {
+                        historyTable.innerHTML = `
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-500 text-center" colspan="7">
+                                    No prediction history available
+                                </td>
+                            </tr>
+                        `;
+                    }
+                },
+
+                // Filter history based on search and filter
+                filterHistory: function() {
+                    const searchTerm = document.getElementById('history-search').value.toLowerCase();
+                    const filterValue = document.getElementById('history-filter').value;
+
+                    // Filter predictions for current user
+                    let filteredPredictions = this.state.predictions.filter(p => 
+                        p.userId === this.state.currentUser.id
+                    );
+
+                    // Apply risk level filter if not "all"
+                    if (filterValue !== 'all') {
+                        filteredPredictions = filteredPredictions.filter(p => 
+                            p.riskLevel.toLowerCase() === filterValue
+                        );
+                    }
+
+                    // Apply search filter if there's a search term
+                    if (searchTerm) {
+                        filteredPredictions = filteredPredictions.filter(p => 
+                            p.riskLevel.toLowerCase().includes(searchTerm) ||
+                            p.bp.toString().includes(searchTerm) ||
+                            p.cholesterol.toString().includes(searchTerm) ||
+                            p.heartRate.toString().includes(searchTerm) ||
+                            new Date(p.date).toLocaleDateString().toLowerCase().includes(searchTerm)
+                        );
+                    }
+
+                    // Sort by date (newest first)
+                    filteredPredictions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                    // Update history table
+                    const historyTable = document.getElementById('history-table');
+                    if (filteredPredictions.length > 0) {
+                        let tableHTML = '';
+                        filteredPredictions.forEach(prediction => {
+                            tableHTML += `
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">${new Date(prediction.date).toLocaleDateString()}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${this.getRiskLevelBadgeClass(prediction.riskLevel)}">
+                                            ${prediction.riskLevel}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">${prediction.age}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">${prediction.bp}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">${prediction.cholesterol}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">${prediction.heartRate}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button class="text-sky-600 hover:text-sky-900 mr-3" onclick="app.viewPrediction('${prediction.id}')">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <button class="text-red-600 hover:text-red-900" onclick="app.deletePrediction('${prediction.id}')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        historyTable.innerHTML = tableHTML;
+                    } else {
+                        historyTable.innerHTML = `
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-gray-500 text-center" colspan="7">
+                                    No matching prediction history found
+                                </td>
+                            </tr>
+                        `;
+                    }
+                },
+
+                // Clear all history for current user
+                clearHistory: function() {
+                    if (confirm('Are you sure you want to delete all your prediction history? This action cannot be undone.')) {
+                        // Filter out current user's predictions
+                        this.state.predictions = this.state.predictions.filter(p => 
+                            p.userId !== this.state.currentUser.id
+                        );
+                        
+                        // Save to localStorage
+                        localStorage.setItem('predictions', JSON.stringify(this.state.predictions));
+                        
+                        // Reload history
+                        this.loadHistory();
+                        
+                        // Show toast
+                        this.showToast('Prediction history cleared successfully!', 'success');
+                        
+                        // Update dashboard
+                        this.loadDashboard();
+                    }
+                },
+
+                // Load the user profile
+                loadProfile: function() {
+                    document.getElementById('profile-name').value = this.state.currentUser.name;
+                    document.getElementById('profile-email').value = this.state.currentUser.email;
+                },
+
+                // Update the user profile
+                updateProfile: function() {
+                    const name = document.getElementById('profile-name').value;
+                    
+                    if (name.trim() === '') {
+                        this.showToast('Name cannot be empty', 'error');
+                        return;
+                    }
+                    
+                    // Update user in the users array
+                    const userIndex = this.state.users.findIndex(u => u.id === this.state.currentUser.id);
+                    if (userIndex !== -1) {
+                        this.state.users[userIndex].name = name;
+                        localStorage.setItem('users', JSON.stringify(this.state.users));
+                        
+                        // Update current user
+                        this.state.currentUser.name = name;
+                        sessionStorage.setItem('currentUser', JSON.stringify(this.state.currentUser));
+                        
+                        // Update display name in header
+                        document.getElementById('user-name').textContent = name;
+                        
+                        this.showToast('Profile updated successfully!', 'success');
+                    }
+                },
+
+                // Change the user password
+                changePassword: function() {
+                    const currentPassword = document.getElementById('current-password').value;
+                    const newPassword = document.getElementById('new-password').value;
+                    const confirmNewPassword = document.getElementById('confirm-new-password').value;
+                    
+                    // Find user
+                    const userIndex = this.state.users.findIndex(u => u.id === this.state.currentUser.id);
+                    if (userIndex === -1) {
+                        this.showToast('Error: User not found', 'error');
+                        return;
+                    }
+                    
+                    // Check current password
+                    if (this.state.users[userIndex].password !== this.simpleHash(currentPassword)) {
+                        this.showToast('Current password is incorrect', 'error');
+                        return;
+                    }
+                    
+                    // Check new password length
+                    if (newPassword.length < 6) {
+                        this.showToast('New password must be at least 6 characters long', 'error');
+                        return;
+                    }
+                    
+                    // Check passwords match
+                    if (newPassword !== confirmNewPassword) {
+                        this.showToast('New passwords do not match', 'error');
+                        return;
+                    }
+                    
+                    // Update password
+                    this.state.users[userIndex].password = this.simpleHash(newPassword);
+                    localStorage.setItem('users', JSON.stringify(this.state.users));
+                    
+                    // Clear form
+                    document.getElementById('current-password').value = '';
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-new-password').value = '';
+                    
+                    this.showToast('Password changed successfully!', 'success');
+                },
+
+                // Delete the user account
+                deleteAccount: function() {
+                    // Remove user from users array
+                    this.state.users = this.state.users.filter(u => u.id !== this.state.currentUser.id);
+                    localStorage.setItem('users', JSON.stringify(this.state.users));
+                    
+                    // Remove user's predictions
+                    this.state.predictions = this.state.predictions.filter(p => p.userId !== this.state.currentUser.id);
+                    localStorage.setItem('predictions', JSON.stringify(this.state.predictions));
+                    
+                    // Logout
+                    this.handleLogout();
+                    this.showToast('Account deleted successfully', 'success');
+                },
+
+                // Handle prediction form submission
+                handlePrediction: function() {
+                    // Show loading state
+                    document.getElementById('predict-btn-text').textContent = 'Processing...';
+                    document.getElementById('prediction-loader').classList.remove('hidden');
+                    
+                    // Get form values
+                    const form = document.getElementById('heartDiseaseForm');
+                    const age = parseInt(form.age.value);
+                    const gender = form.gender.value;
+                    const bp = parseInt(form.bp.value);
+                    const cholesterol = parseInt(form.cholesterol.value);
+                    const heartRate = parseInt(form.heartRate.value);
+                    const diabetes = form.diabetes.value;
+                    const smoking = form.smoking ? form.smoking.value : 'no';
+                    const familyHistory = form.familyHistory ? form.familyHistory.value : 'no';
+                    
+                    // Simulate API call to a prediction model
+                    setTimeout(() => {
+                        // Simple risk calculation algorithm with additional factors
+                        let riskScore = 0;
+                        
+                        // Age risk
+                        if (age > 60) riskScore += 2;
+                        else if (age > 40) riskScore += 1;
+                        
+                        // Gender risk (males have slightly higher risk statistically)
+                        if (gender === 'male') riskScore += 1;
+                        
+                        // Blood pressure risk
+                        if (bp > 140) riskScore += 2;
+                        else if (bp > 120) riskScore += 1;
+                        
+                        // Cholesterol risk
+                        if (cholesterol > 240) riskScore += 2;
+                        else if (cholesterol > 200) riskScore += 1;
+                        
+                        // Heart rate risk
+                        if (heartRate > 100 || heartRate < 60) riskScore += 1;
+                        
+                        // Diabetes risk
+                        if (diabetes === 'yes') riskScore += 2;
+                        
+                        // Smoking risk
+                        if (smoking === 'yes') riskScore += 2;
+                        
+                        // Family history risk
+                        if (familyHistory === 'yes') riskScore += 2;
+                        
+                        // Display result
+                        const resultDiv = document.getElementById('result');
+                        const riskLevelElement = document.getElementById('riskLevel');
+                        const confidenceElement = document.getElementById('confidence');
+                        const recommendationElement = document.getElementById('recommendation');
+                        const riskMeter = document.getElementById('risk-meter');
+                        
+                        // Determine risk level
+                        let riskLevel, recommendation, confidence, meterWidth, meterColor;
+                        const maxScore = 12; // Maximum possible risk score
+                        const riskPercentage = Math.round((riskScore / maxScore) * 100);
+                        
+                        if (riskScore <= 2) {
+                            riskLevel = "Low Risk";
+                            riskLevelElement.className = "text-lg text-green-600 font-bold";
+                            recommendation = "Maintain a healthy lifestyle with regular exercise and balanced diet. Continue to monitor your heart health with annual check-ups.";
+                            confidence = `Confidence level: ${95 - riskPercentage}%`;
+                            meterWidth = riskPercentage + '%';
+                            meterColor = 'bg-green-500';
+                        } else if (riskScore <= 5) {
+                            riskLevel = "Moderate Risk";
+                            riskLevelElement.className = "text-lg text-yellow-600 font-bold";
+                            recommendation = "Consider lifestyle changes such as improving diet, increasing physical activity, and stress reduction. Schedule a follow-up with your healthcare provider within 3-6 months.";
+                            confidence = `Confidence level: ${90 - riskPercentage}%`;
+                            meterWidth = riskPercentage + '%';
+                            meterColor = 'bg-yellow-500';
+                        } else {
+                            riskLevel = "High Risk";
+                            riskLevelElement.className = "text-lg text-red-600 font-bold";
+                            recommendation = "Please consult a healthcare professional immediately. Your risk factors indicate a potentially serious condition that should be evaluated by a medical specialist as soon as possible.";
+                            confidence = `Confidence level: ${85 - riskPercentage}%`;
+                            meterWidth = riskPercentage + '%';
+                            meterColor = 'bg-red-500';
+                        }
+                        
+                        riskLevelElement.textContent = riskLevel;
+                        confidenceElement.textContent = confidence;
+                        recommendationElement.textContent = recommendation;
+                        riskMeter.style.width = '0%';
+                        riskMeter.className = 'risk-meter h-full ' + meterColor;
+                        
+                        // Show result
+                        resultDiv.classList.remove('hidden');
+                        
+                        // Animate risk meter
+                        setTimeout(() => {
+                            riskMeter.style.width = meterWidth;
+                        }, 100);
+                        
+                        // Store current prediction in a temporary variable
+                        this.currentPrediction = {
+                            id: Date.now().toString(),
+                            userId: this.state.currentUser.id,
+                            date: new Date().toISOString(),
+                            age: age,
+                            gender: gender,
+                            bp: bp,
+                            cholesterol: cholesterol,
+                            heartRate: heartRate,
+                            diabetes: diabetes,
+                            smoking: smoking,
+                            familyHistory: familyHistory,
+                            riskLevel: riskLevel,
+                            riskScore: riskScore,
+                            recommendation: recommendation
+                        };
+                        
+                        // Reset button state
+                        document.getElementById('predict-btn-text').textContent = 'Predict Risk';
+                        document.getElementById('prediction-loader').classList.add('hidden');
+                    }, 1500); // Simulate loading delay
+                },
+
+                // Save the current prediction to history
+                savePrediction: function() {
+                    if (this.currentPrediction) {
+                        this.state.predictions.push(this.currentPrediction);
+                        localStorage.setItem('predictions', JSON.stringify(this.state.predictions));
+                        this.currentPrediction = null; // Clear after saving
+                    }
+                },
+
+                // Delete a prediction
+                deletePrediction: function(predictionId) {
+                    if (confirm('Are you sure you want to delete this prediction?')) {
+                        this.state.predictions = this.state.predictions.filter(p => p.id !== predictionId);
+                        localStorage.setItem('predictions', JSON.stringify(this.state.predictions));
+                        
+                        // Reload current page
+                        if (document.getElementById('history-page').classList.contains('hidden')) {
+                            this.loadDashboard();
+                        } else {
+                            this.loadHistory();
+                        }
+                        
+                        this.showToast('Prediction deleted successfully!', 'success');
+                    }
+                },
+
+                // View a prediction
+                viewPrediction: function(predictionId) {
+                    const prediction = this.state.predictions.find(p => p.id === predictionId);
+                    if (prediction) {
+                        // Navigate to prediction page
+                        this.showAppPage('prediction-page');
+                        
+                        // Fill the form with prediction data
+                        const form = document.getElementById('heartDiseaseForm');
+                        form.age.value = prediction.age;
+                        form.gender.value = prediction.gender;
+                        form.bp.value = prediction.bp;
+                        form.cholesterol.value = prediction.cholesterol;
+                        form.heartRate.value = prediction.heartRate;
+                        form.diabetes.value = prediction.diabetes;
+                        if (form.smoking) form.smoking.value = prediction.smoking;
+                        if (form.familyHistory) form.familyHistory.value = prediction.familyHistory;
+                        
+                        // Set result
+                        const resultDiv = document.getElementById('result');
+                        const riskLevelElement = document.getElementById('riskLevel');
+                        const confidenceElement = document.getElementById('confidence');
+                        const recommendationElement = document.getElementById('recommendation');
+                        const riskMeter = document.getElementById('risk-meter');
+                        
+                        // Set risk level class
+                        let riskLevelClass, meterColor;
+                        
+                        if (prediction.riskLevel === 'Low Risk') {
+                            riskLevelClass = "text-lg text-green-600 font-bold";
+                            meterColor = 'bg-green-500';
+                        } else if (prediction.riskLevel === 'Moderate Risk') {
+                            riskLevelClass = "text-lg text-yellow-600 font-bold";
+                            meterColor = 'bg-yellow-500';
+                        } else {
+                            riskLevelClass = "text-lg text-red-600 font-bold";
+                            meterColor = 'bg-red-500';
+                        }
+                        
+                        riskLevelElement.textContent = prediction.riskLevel;
+                        riskLevelElement.className = riskLevelClass;
+                        
+                        const maxScore = 12;
+                        const riskPercentage = Math.round((prediction.riskScore / maxScore) * 100);
+                        let confidence;
+                        
+                        if (prediction.riskLevel === 'Low Risk') {
+                            confidence = `Confidence level: ${95 - riskPercentage}%`;
+                        } else if (prediction.riskLevel === 'Moderate Risk') {
+                            confidence = `Confidence level: ${90 - riskPercentage}%`;
+                        } else {
+                            confidence = `Confidence level: ${85 - riskPercentage}%`;
+                        }
+                        
+                        confidenceElement.textContent = confidence;
+                        recommendationElement.textContent = prediction.recommendation;
+                        
+                        riskMeter.style.width = '0%';
+                        riskMeter.className = 'risk-meter h-full ' + meterColor;
+                        
+                        // Show result
+                        resultDiv.classList.remove('hidden');
+                        
+                        // Animate risk meter
+                        setTimeout(() => {
+                            riskMeter.style.width = riskPercentage + '%';
+                        }, 100);
+                        
+                        // Set current prediction to null since we're viewing an existing one
+                        this.currentPrediction = null;
+                    }
+                },
+
+                // Show a toast notification
+                showToast: function(message, type = 'info') {
+                    const toastContainer = document.getElementById('toast-container');
+                    
+                    // Toast background class based on type
+                    let bgClass, iconClass;
+                    switch (type) {
+                        case 'success':
+                            bgClass = 'bg-green-500';
+                            iconClass = 'bi-check-circle';
+                            break;
+                        case 'error':
+                            bgClass = 'bg-red-500';
+                            iconClass = 'bi-exclamation-circle';
+                            break;
+                        case 'warning':
+                            bgClass = 'bg-yellow-500';
+                            iconClass = 'bi-exclamation-triangle';
+                            break;
+                        default:
+                            bgClass = 'bg-sky-500';
+                            iconClass = 'bi-info-circle';
+                    }
+                    
+                    // Create toast element
+                    const toast = document.createElement('div');
+                    toast.className = `${bgClass} text-white p-4 rounded-lg shadow-lg flex items-center max-w-md transform transition-all duration-500 ease-in-out translate-y-10 opacity-0`;
+                    toast.innerHTML = `
+                        <div class="flex-shrink-0 mr-3">
+                            <i class="bi ${iconClass}"></i>
+                        </div>
+                        <div class="flex-grow">
+                            ${message}
+                        </div>
+                        <div class="flex-shrink-0 ml-3">
+                            <button class="text-white focus:outline-none">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    // Add toast to container
+                    toastContainer.appendChild(toast);
+                    
+                    // Animate in
+                    setTimeout(() => {
+                        toast.classList.remove('translate-y-10', 'opacity-0');
+                    }, 10);
+                    
+                    // Set up close button
+                    toast.querySelector('button').addEventListener('click', () => {
+                        // Animate out
+                        toast.classList.add('translate-y-10', 'opacity-0');
+                        setTimeout(() => {
+                            toast.remove();
+                        }, 500);
+                    });
+                    
+                    // Auto close after 4 seconds
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.classList.add('translate-y-10', 'opacity-0');
+                            setTimeout(() => {
+                                if (toast.parentNode) {
+                                    toast.remove();
+                                }
+                            }, 500);
+                        }
+                    }, 4000);
+                },
+
+                // Get color class for risk level
+                getRiskLevelClass: function(riskLevel) {
+                    switch (riskLevel) {
+                        case 'Low Risk': return 'text-green-600';
+                        case 'Moderate Risk': return 'text-yellow-600';
+                        case 'High Risk': return 'text-red-600';
+                        default: return '';
+                    }
+                },
+
+                // Get badge class for risk level
+                getRiskLevelBadgeClass: function(riskLevel) {
+                    switch (riskLevel) {
+                        case 'Low Risk': return 'bg-green-100 text-green-800';
+                        case 'Moderate Risk': return 'bg-yellow-100 text-yellow-800';
+                        case 'High Risk': return 'bg-red-100 text-red-800';
+                        default: return '';
+                    }
+                },
+
+                // Simple hash function for password storage
+                simpleHash: function(str) {
+                    let hash = 0;
+                    for (let i = 0; i < str.length; i++) {
+                        const char = str.charCodeAt(i);
+                        hash = ((hash << 5) - hash) + char;
+                        hash = hash & hash;
+                    }
+                    return hash.toString();
+                }
+            };
+
+            // Initialize app
+            app.init();
+
+            // Expose app to window for global access (for event handlers)
+            window.app = app;
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
